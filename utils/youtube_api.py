@@ -1,7 +1,7 @@
 import os
 from googleapiclient.discovery import build
 
-API_KEY = 'AIzaSyB9DiFMobfd55cdHnWaS0kduJ5crX0Wm4o'
+API_KEY = ''
 
 def get_youtube_service():
     """Khởi tạo dịch vụ YouTube API."""
