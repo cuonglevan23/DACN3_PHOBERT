@@ -1,10 +1,11 @@
 from transformers import pipeline
+import re
+from collections import Counter
 
-# Tên mô hình trên Hugging Face Hub
+# Mô hình và ánh xạ nhãn
 model_name = "levancuong17/DACN3_LVC"
 classifier = pipeline("text-classification", model=model_name, tokenizer=model_name)
 
-# Từ điển ánh xạ nhãn
 label_mapping = {
     "LABEL_0": "Thích thú",
     "LABEL_1": "Ghê tởm",
@@ -15,31 +16,37 @@ label_mapping = {
     "LABEL_6": "Ngạc nhiên"
 }
 
+# Hàm tách câu
+def split_sentences(text):
+    sentences = re.split(r'[.!?;]', text)  # Tách câu theo dấu ngắt câu
+    sentences = [s.strip() for s in sentences if s.strip()]  # Loại bỏ khoảng trắng và câu rỗng
+    return sentences
 
+# Hàm phân tích cảm xúc
 def analyze_comments(comments):
     results = []
     for comment in comments:
-        # Cắt bớt nếu chiều dài comment vượt quá 512
-        if len(comment) > 512:
-            comment = comment[:512]
-
         try:
-            # Dự đoán cảm xúc
-            prediction = classifier(comment)
+            sentences = split_sentences(comment)
+            details = []
 
-            # Kiểm tra dự đoán có trả về kết quả không
-            if not prediction:
-                continue
+            # Phân tích cảm xúc từng câu
+            for sentence in sentences:
+                if len(sentence) > 512:  # Xử lý câu dài
+                    sentence = sentence[:512]
+                prediction = classifier(sentence)
 
-            # Ánh xạ nhãn dự đoán
-            label = label_mapping.get(prediction[0]['label'], "Không xác định")
-            results.append({"comment": comment, "emotion": label})
+                # Lấy nhãn cảm xúc
+                if prediction:
+                    emotion = label_mapping.get(prediction[0]['label'], "Không xác định")
+                    details.append({"sentence": sentence, "emotion": emotion})
+
+            # Tổng hợp cảm xúc chính
+            if details:
+                overall_emotion = Counter([d["emotion"] for d in details]).most_common(1)[0][0]
+                results.append({"comment": comment, "emotion": overall_emotion, "details": details})
 
         except Exception as e:
             print(f"Error processing comment '{comment}': {e}")
 
     return results
-
-
-
-
